@@ -2,9 +2,9 @@
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
 <wallpapers>
   <wallpaper deleted="false">
-    <name>Cartoon 2</name>
-    <filename>/usr/share/backgrounds/cartoon2.jpg</filename>
-    <filename-dark>/usr/share/backgrounds/cartoon2.png</filename-dark>
+    <name>Night</name>
+    <filename>/usr/share/backgrounds/night.png</filename>
+    <filename-dark>/usr/share/backgrounds/night.png</filename-dark>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#3071AE</pcolor>

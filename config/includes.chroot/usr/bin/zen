@@ -1,0 +1,2283 @@
+#!/bin/bash
+
+# Developed by root0emir
+# zenclora.org
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                            ZEN PACKAGE MANAGER                                ║
+# ║                      Zenclora's Unified Package Manager                       ║
+# ║                                                                               ║
+# ║  Usage: zen <command> [options]                                               ║
+# ║                                                                               ║
+# ║  Commands:                                                                    ║
+# ║    install <package>    Install a package                                     ║
+# ║    remove <package>     Remove a package                                      ║
+# ║    update               Update system and all packages                        ║
+# ║    system <action>      System utilities (dns, zram, net, cleanup)            ║
+# ║    list                 List available packages                               ║
+# ║    help                 Show this help message                                ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+set -e
+    
+# ═══════════════════════════════════════════════════════════════════════════════
+BOLD='\033[1m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+ZEN_VERSION="1.0"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+print_banner() {
+    echo -e "${PURPLE}"
+    echo "  ╔═══════════════════════════════════════════╗"
+    echo "  ║     ███████╗███████╗███╗   ██╗            ║"
+    echo "  ║     ╚══███╔╝██╔════╝████╗  ██║            ║"
+    echo "  ║       ███╔╝ █████╗  ██╔██╗ ██║            ║"
+    echo "  ║      ███╔╝  ██╔══╝  ██║╚██╗██║            ║"
+    echo "  ║     ███████╗███████╗██║ ╚████║            ║"
+    echo "  ║     ╚══════╝╚══════╝╚═╝  ╚═══╝            ║"
+    echo "  ║                                           ║"
+    echo "  ║   Zenclora Package Manager v${ZEN_VERSION}           ║"
+    echo "  ╚═══════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}[+] $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}[-] $1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}[*] $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!] $1${NC}"
+}
+
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        print_error "This command requires root privileges. Please run with sudo."
+        exit 1
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PACKAGE DEFINITIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Available packages (name -> category)
+declare -A PACKAGES
+
+# Packs (Debian repo bundles)
+PACKAGES["gaming-pack"]="pack"
+PACKAGES["editor-pack"]="pack"
+PACKAGES["producer-pack"]="pack"
+PACKAGES["office-pack"]="pack"
+PACKAGES["dev-pack"]="pack"
+
+# External Apps (need repo setup)
+# External Apps (need repo setup)
+PACKAGES["steam"]="gaming"
+PACKAGES["brave"]="browser"
+PACKAGES["chrome"]="browser"
+PACKAGES["mullvad-vpn"]="privacy"
+PACKAGES["mullvad-browser"]="privacy"
+PACKAGES["librewolf"]="privacy"
+PACKAGES["spotify"]="media"
+PACKAGES["signal"]="productivity"
+
+# AI Tools
+PACKAGES["cursor"]="ai"
+PACKAGES["windsurf"]="ai"
+PACKAGES["antigravity"]="ai"
+PACKAGES["ollama"]="ai"
+
+# System/Dev Tools
+PACKAGES["flatpak"]="system"
+PACKAGES["snap"]="system"
+PACKAGES["pacstall"]="system"
+PACKAGES["liquorix"]="kernel"
+PACKAGES["nvidia-driver"]="driver"
+PACKAGES["rust"]="dev"
+PACKAGES["docker"]="dev"
+PACKAGES["vscode"]="dev"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PACK INSTALL FUNCTIONS (Debian repo bundles)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+install_gaming-pack() {
+    print_info "Installing Gaming Pack..."
+    print_info "Packages: lutris, wine, winetricks, gamemode, mangohud, vulkan-tools, mesa-vulkan-drivers"
+    echo ""
+
+    sudo dpkg --add-architecture i386
+    sudo apt update
+    sudo apt install -y \
+        lutris \
+        wine \
+        winetricks \
+        gamemode \
+        mangohud \
+        vulkan-tools \
+        mesa-vulkan-drivers \
+        mesa-vulkan-drivers:i386 \
+        libgl1-mesa-dri:i386 \
+        libglx-mesa0:i386
+}
+
+remove_gaming-pack() {
+    print_info "Removing Gaming Pack..."
+    sudo apt remove -y lutris wine winetricks gamemode mangohud vulkan-tools || true
+    sudo apt autoremove -y
+}
+
+install_editor-pack() {
+    print_info "Installing Editor Pack..."
+    print_info "Packages: gimp, krita, inkscape, pinta"
+    echo ""
+
+    sudo apt update
+    sudo apt install -y gimp krita inkscape pinta
+}
+
+remove_editor-pack() {
+    print_info "Removing Editor Pack..."
+    sudo apt remove -y gimp krita inkscape pinta || true
+    sudo apt autoremove -y
+}
+
+install_producer-pack() {
+    print_info "Installing Producer Pack..."
+    print_info "Packages: ardour, audacity, lmms, musescore, hydrogen, rosegarden"
+    echo ""
+
+    sudo apt update
+    sudo apt install -y ardour audacity lmms musescore hydrogen rosegarden
+}
+
+remove_producer-pack() {
+    print_info "Removing Producer Pack..."
+    sudo apt remove -y ardour audacity lmms musescore hydrogen rosegarden || true
+    sudo apt autoremove -y
+}
+
+install_office-pack() {
+    print_info "Installing Office Pack..."
+    print_info "Packages: libreoffice, libreoffice-gtk3, evince, simple-scan"
+    echo ""
+
+    sudo apt update
+    sudo apt install -y libreoffice libreoffice-gtk3 evince simple-scan
+}
+
+remove_office-pack() {
+    print_info "Removing Office Pack..."
+    sudo apt remove -y libreoffice* evince simple-scan || true
+    sudo apt autoremove -y
+}
+
+install_dev-pack() {
+    print_info "Installing Dev Pack..."
+    print_info "Packages: build-essential, git, python3, python3-pip, nodejs, npm, gcc, g++, make, cmake"
+    echo ""
+
+    sudo apt update
+    sudo apt install -y build-essential git python3 python3-pip python3-venv nodejs npm gcc g++ make cmake
+}
+
+remove_dev-pack() {
+    print_info "Removing Dev Pack..."
+    sudo apt remove -y build-essential nodejs npm cmake || true
+    sudo apt autoremove -y
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXTERNAL APP INSTALL FUNCTIONS (need repo setup)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+install_steam() {
+    print_info "Adding i386 architecture..."
+    sudo dpkg --add-architecture i386
+
+    print_info "Downloading and adding Steam GPG key..."
+    curl -s http://repo.steampowered.com/steam/archive/stable/steam.gpg | sudo tee /usr/share/keyrings/steam.gpg > /dev/null
+
+    print_info "Adding Steam repository..."
+    sudo tee /etc/apt/sources.list.d/steam-stable.list <<'EOF'
+deb [arch=amd64,i386 signed-by=/usr/share/keyrings/steam.gpg] https://repo.steampowered.com/steam/ stable steam
+deb-src [arch=amd64,i386 signed-by=/usr/share/keyrings/steam.gpg] https://repo.steampowered.com/steam/ stable steam
+EOF
+
+    print_info "Updating package lists..."
+    sudo apt update
+
+    print_info "Installing Steam dependencies..."
+    sudo apt install -y mesa-vulkan-drivers libglx-mesa0:i386 mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386
+
+    print_info "Installing Steam Launcher..."
+    sudo apt install -y steam-launcher
+}
+
+remove_steam() {
+    print_info "Removing Steam..."
+    sudo apt remove -y steam-launcher || true
+    sudo rm -f /etc/apt/sources.list.d/steam-stable.list
+    sudo rm -f /usr/share/keyrings/steam.gpg
+    sudo apt update
+}
+
+# Lutris is now in gaming-pack, standalone function removed
+
+install_brave() {
+    print_info "Downloading and adding Brave GPG key..."
+    sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+
+    print_info "Adding Brave repository..."
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+
+    print_info "Installing Brave Browser..."
+    sudo apt update
+    sudo apt install -y brave-browser
+    
+    # Remove duplicate desktop entry
+    sudo rm -f /usr/share/applications/com.brave.Browser.desktop
+}
+
+remove_brave() {
+    print_info "Removing Brave Browser..."
+    sudo apt remove -y brave-browser || true
+    sudo rm -f /etc/apt/sources.list.d/brave-browser-release.list
+    sudo rm -f /usr/share/keyrings/brave-browser-archive-keyring.gpg
+    sudo apt update
+}
+
+install_chrome() {
+    print_info "Adding Google Chrome repository..."
+    wget -q -O- https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+
+    print_info "Installing Google Chrome..."
+    sudo apt update
+    sudo apt install -y google-chrome-stable
+}
+
+remove_chrome() {
+    print_info "Removing Google Chrome..."
+    sudo apt remove -y google-chrome-stable || true
+    sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+    sudo rm -f /usr/share/keyrings/google-chrome.gpg
+    sudo apt update
+}
+
+install_cursor() {
+    print_info "Downloading and adding Cursor GPG key..."
+    curl -fsSL https://downloads.cursor.com/keys/anysphere.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/cursor.gpg > /dev/null
+
+    print_info "Adding Cursor repository..."
+    echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/cursor.gpg] https://downloads.cursor.com/aptrepo stable main" | sudo tee /etc/apt/sources.list.d/cursor.list > /dev/null
+
+    print_info "Installing Cursor..."
+    sudo apt update
+    sudo apt install -y cursor
+}
+
+remove_cursor() {
+    print_info "Removing Cursor..."
+    sudo apt remove -y cursor || true
+    sudo rm -f /etc/apt/sources.list.d/cursor.list
+    sudo rm -f /etc/apt/keyrings/cursor.gpg
+    sudo apt update
+}
+
+install_windsurf() {
+    print_info "Installing dependencies..."
+    sudo apt-get install -y wget gpg apt-transport-https
+
+    print_info "Downloading and adding Windsurf GPG key..."
+    wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf.gpg" | gpg --dearmor > /tmp/windsurf-stable.gpg
+    sudo install -D -o root -g root -m 644 /tmp/windsurf-stable.gpg /etc/apt/keyrings/windsurf-stable.gpg
+    rm -f /tmp/windsurf-stable.gpg
+
+    print_info "Adding Windsurf repository..."
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/windsurf-stable.gpg] https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/apt stable main" | sudo tee /etc/apt/sources.list.d/windsurf.list > /dev/null
+
+    print_info "Installing Windsurf..."
+    sudo apt update
+    sudo apt install -y windsurf
+}
+
+remove_windsurf() {
+    print_info "Removing Windsurf..."
+    sudo apt remove -y windsurf || true
+    sudo rm -f /etc/apt/sources.list.d/windsurf.list
+    sudo rm -f /etc/apt/keyrings/windsurf-stable.gpg
+    sudo apt update
+}
+
+install_antigravity() {
+    print_info "Downloading and adding Antigravity GPG key..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg | \
+      sudo gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
+
+    print_info "Adding Antigravity repository..."
+    echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" | \
+      sudo tee /etc/apt/sources.list.d/antigravity.list > /dev/null
+
+    print_info "Installing Antigravity..."
+    sudo apt update
+    sudo apt install -y antigravity
+}
+
+remove_antigravity() {
+    print_info "Removing Antigravity..."
+    sudo apt remove -y antigravity || true
+    sudo rm -f /etc/apt/sources.list.d/antigravity.list
+    sudo rm -f /etc/apt/keyrings/antigravity-repo-key.gpg
+    sudo apt update
+}
+
+install_vscode() {
+    print_info "Adding VS Code GPG key..."
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/microsoft.gpg > /dev/null
+
+    print_info "Adding VS Code repository..."
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list
+
+    print_info "Installing VS Code..."
+    sudo apt update
+    sudo apt install -y code
+}
+
+remove_vscode() {
+    print_info "Removing VS Code..."
+    sudo apt remove -y code || true
+    sudo rm -f /etc/apt/sources.list.d/vscode.list
+    sudo rm -f /usr/share/keyrings/microsoft.gpg
+    sudo apt update
+}
+
+install_spotify() {
+    print_info "Adding Spotify GPG key..."
+    curl -sS https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg
+
+    print_info "Adding Spotify repository..."
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/spotify.gpg] https://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
+
+    print_info "Installing Spotify..."
+    sudo apt update
+    sudo apt install -y spotify-client
+}
+
+remove_spotify() {
+    print_info "Removing Spotify..."
+    sudo apt remove -y spotify-client || true
+    sudo rm -f /etc/apt/sources.list.d/spotify.list
+    sudo rm -f /etc/apt/keyrings/spotify.gpg
+    sudo apt update
+}
+
+install_flatpak() {
+    print_info "Installing Flatpak..."
+    sudo apt update
+    sudo apt install -y flatpak gnome-software-plugin-flatpak
+
+    print_info "Adding Flathub repository..."
+    sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+}
+
+remove_flatpak() {
+    print_info "Removing Flatpak..."
+    sudo apt remove -y flatpak gnome-software-plugin-flatpak || true
+}
+
+install_snap() {
+    print_info "Installing Snap..."
+    sudo apt update
+    sudo apt install -y snapd
+    sudo systemctl enable --now snapd.socket
+    sudo ln -sf /var/lib/snapd/snap /snap || true
+}
+
+remove_snap() {
+    print_info "Removing Snap..."
+    sudo systemctl stop snapd.socket snapd.service || true
+    sudo apt remove -y snapd || true
+    sudo rm -rf /var/lib/snapd /snap
+}
+
+install_pacstall() {
+    print_info "Installing Pacstall..."
+    sudo bash -c "$(curl -fsSL https://pacstall.dev/q/install)"
+}
+
+remove_pacstall() {
+    print_info "Removing Pacstall..."
+    
+    # Remove binary
+    sudo rm -f "/usr/bin/pacstall"
+    
+    # Remove directories
+    sudo rm -rf "/usr/share/pacstall"
+    sudo rm -rf "/var/lib/pacstall"
+    sudo rm -rf "/var/log/pacstall"
+    
+    # Remove manuals
+    sudo rm -f "/usr/share/man/man8/pacstall.8.gz"
+    sudo rm -f "/usr/share/man/man5/pacstall.5.gz"
+    
+    # Remove completions
+    sudo rm -f "/usr/share/bash-completion/completions/pacstall"
+    sudo rm -f "/usr/share/fish/vendor_completions.d/pacstall.fish"
+    
+    # Remove translations
+    sudo find /usr/share/locale -name "pacstall.mo" -delete
+
+    print_success "Pacstall removed successfully"
+}
+
+install_liquorix() {
+    print_info "Adding Liquorix repository..."
+    curl -s 'https://liquorix.net/install-liquorix.sh' | sudo bash
+}
+
+remove_liquorix() {
+    print_info "Removing Liquorix kernel..."
+    sudo apt remove -y linux-image-liquorix-amd64 linux-headers-liquorix-amd64 || true
+    
+    print_info "Removing Liquorix repository and keyring..."
+    sudo rm -f /etc/apt/sources.list.d/liquorix.list
+    sudo rm -f /etc/apt/keyrings/liquorix-keyring.gpg
+    
+    sudo apt update
+}
+
+install_ollama() {
+    print_info "Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
+}
+
+remove_ollama() {
+    print_info "Stopping Ollama service..."
+    sudo systemctl stop ollama 2>/dev/null || true
+    sudo systemctl disable ollama 2>/dev/null || true
+    
+    print_info "Removing Ollama binary and service..."
+    sudo rm -f /etc/systemd/system/ollama.service
+    sudo systemctl daemon-reload
+    
+    # Remove binary from all possible locations
+    sudo rm -f /usr/local/bin/ollama /usr/bin/ollama /bin/ollama
+    
+    # Remove installation directory and data
+    sudo rm -rf /usr/local/lib/ollama
+    sudo rm -rf /usr/lib/ollama
+    sudo rm -rf /usr/share/ollama
+    
+    print_info "Removing Ollama user/group..."
+    sudo userdel -r ollama 2>/dev/null || true
+    sudo groupdel ollama 2>/dev/null || true
+}
+
+install_mullvad-vpn() {
+    print_info "Downloading Mullvad VPN signing key..."
+    sudo curl -fsSLo /usr/share/keyrings/mullvad-keyring.asc https://repository.mullvad.net/deb/mullvad-keyring.asc
+
+    print_info "Adding Mullvad repository..."
+    echo "deb [signed-by=/usr/share/keyrings/mullvad-keyring.asc arch=$(dpkg --print-architecture)] https://repository.mullvad.net/deb/stable stable main" | sudo tee /etc/apt/sources.list.d/mullvad.list
+
+    print_info "Installing Mullvad VPN..."
+    sudo apt update
+    sudo apt install -y mullvad-vpn
+}
+
+remove_mullvad-vpn() {
+    print_info "Removing Mullvad VPN..."
+    sudo apt remove -y mullvad-vpn || true
+    
+    # Check if Mullvad Browser is still installed
+    if ! dpkg -l | grep -q "^ii  mullvad-browser"; then
+        print_info "No other Mullvad packages found. Cleaning up repository..."
+        sudo rm -f /etc/apt/sources.list.d/mullvad.list
+        sudo rm -f /usr/share/keyrings/mullvad-keyring.asc
+        sudo apt update
+    else
+        print_warning "Mullvad Browser is still installed. Keeping repository for updates."
+    fi
+}
+
+install_mullvad-browser() {
+    print_info "Downloading Mullvad signing key..."
+    sudo curl -fsSLo /usr/share/keyrings/mullvad-keyring.asc https://repository.mullvad.net/deb/mullvad-keyring.asc
+
+    print_info "Adding Mullvad repository..."
+    echo "deb [signed-by=/usr/share/keyrings/mullvad-keyring.asc arch=$(dpkg --print-architecture)] https://repository.mullvad.net/deb/stable stable main" | sudo tee /etc/apt/sources.list.d/mullvad.list
+
+    print_info "Installing Mullvad Browser..."
+    sudo apt update
+    sudo apt install -y mullvad-browser
+}
+
+remove_mullvad-browser() {
+    print_info "Removing Mullvad Browser..."
+    sudo apt remove -y mullvad-browser || true
+    
+    # Check if Mullvad VPN is still installed
+    if ! dpkg -l | grep -q "^ii  mullvad-vpn"; then
+        print_info "No other Mullvad packages found. Cleaning up repository..."
+        sudo rm -f /etc/apt/sources.list.d/mullvad.list
+        sudo rm -f /usr/share/keyrings/mullvad-keyring.asc
+        sudo apt update
+    else
+        print_warning "Mullvad VPN is still installed. Keeping repository for updates."
+    fi
+}
+
+install_nvidia-driver() {
+    print_info "Installing kernel headers..."
+    sudo apt install -y linux-headers-amd64
+
+    print_info "Blacklisting nouveau driver..."
+    echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+    echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist-nouveau.conf
+    sudo update-initramfs -u
+
+    print_info "Installing NVIDIA drivers..."
+    sudo apt update
+    sudo apt install -y nvidia-driver nvidia-cuda-toolkit
+
+    print_warning "Please reboot your system for changes to take effect."
+}
+
+remove_nvidia-driver() {
+    print_info "Removing NVIDIA drivers..."
+    sudo apt remove -y nvidia-driver nvidia-cuda-toolkit || true
+    sudo rm -f /etc/modprobe.d/blacklist-nouveau.conf
+    sudo update-initramfs -u
+    sudo apt autoremove -y
+}
+
+install_rust() {
+    print_info "Installing Rust via rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    print_success "Rust installed! Run 'source ~/.cargo/env' to use it."
+}
+
+remove_rust() {
+    print_info "Removing Rust..."
+    rustup self uninstall -y 2>/dev/null || true
+    rm -rf ~/.cargo ~/.rustup
+}
+
+install_docker() {
+    print_info "Installing dependencies..."
+    sudo apt update
+    sudo apt install -y ca-certificates curl
+
+    print_info "Adding Docker GPG key..."
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    print_info "Adding Docker repository (trixie)..."
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    print_info "Installing Docker..."
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    print_info "Adding current user to docker group..."
+    if [ "$USER" != "root" ]; then
+        sudo usermod -aG docker $USER
+        print_warning "Log out and back in for group changes to take effect."
+    fi
+}
+
+remove_docker() {
+    print_info "Cleaning up Docker repository files..."
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+    sudo rm -f /etc/apt/keyrings/docker.asc
+    
+    print_info "Updating package lists to clear errors..."
+    sudo apt update || true
+
+    print_info "Removing Docker packages..."
+    sudo apt remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+    sudo apt autoremove -y
+    
+    print_success "Docker removed and repository cleaned."
+}
+
+install_librewolf() {
+    print_info "Installing extrepo..."
+    sudo apt update
+    sudo apt install -y extrepo
+
+    print_info "Enabling LibreWolf repository..."
+    sudo extrepo enable librewolf
+
+    print_info "Installing LibreWolf..."
+    sudo apt update
+    sudo apt install -y librewolf
+}
+
+remove_librewolf() {
+    print_info "Removing LibreWolf..."
+    sudo apt remove -y librewolf || true
+    
+    print_info "Disabling LibreWolf repository..."
+    sudo extrepo disable librewolf 2>/dev/null || true
+    
+    # Manual cleanup just in case
+    sudo rm -f /etc/apt/sources.list.d/librewolf.sources \
+               /etc/apt/keyrings/librewolf.gpg \
+               /etc/apt/preferences.d/librewolf.pref \
+               /etc/apt/sources.list.d/librewolf.list \
+               /etc/apt/trusted.gpg.d/librewolf.gpg
+    
+    sudo apt update
+}
+
+install_signal() {
+    print_info "Adding Signal GPG key..."
+    wget -O- https://updates.signal.org/desktop/apt/keys.asc | gpg --dearmor > signal-desktop-keyring.gpg
+    cat signal-desktop-keyring.gpg | sudo tee /usr/share/keyrings/signal-desktop-keyring.gpg > /dev/null
+    rm -f signal-desktop-keyring.gpg
+
+    print_info "Adding Signal repository (.sources format)..."
+    wget -O signal-desktop.sources https://updates.signal.org/static/desktop/apt/signal-desktop.sources
+    cat signal-desktop.sources | sudo tee /etc/apt/sources.list.d/signal-desktop.sources > /dev/null
+    rm -f signal-desktop.sources
+
+    print_info "Installing Signal..."
+    sudo apt update
+    sudo apt install -y signal-desktop
+}
+
+remove_signal() {
+    print_info "Removing Signal..."
+    sudo apt remove -y signal-desktop || true
+    sudo rm -f /etc/apt/sources.list.d/signal-desktop.list /etc/apt/sources.list.d/signal-desktop.sources
+    sudo rm -f /usr/share/keyrings/signal-desktop-keyring.gpg
+    sudo apt update
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEM FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+system_dns() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}            Zen DNS Configuration            ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+    echo "Select a DNS provider:"
+    echo ""
+
+    options=("Google (8.8.8.8)" "Cloudflare (1.1.1.1)" "Quad9 (9.9.9.9)" "AdGuard (94.140.14.14)" "OpenDNS (208.67.222.222)" "Custom DNS" "Restore Backup" "Back")
+    PS3="Enter choice (1-8): "
+
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "Google (8.8.8.8)")
+                set_dns "Google" "8.8.8.8" "8.8.4.4"
+                break
+                ;;
+            "Cloudflare (1.1.1.1)")
+                set_dns "Cloudflare" "1.1.1.1" "1.0.0.1"
+                break
+                ;;
+            "Quad9 (9.9.9.9)")
+                set_dns "Quad9" "9.9.9.9" "149.112.112.112"
+                break
+                ;;
+            "AdGuard (94.140.14.14)")
+                set_dns "AdGuard" "94.140.14.14" "94.140.15.15"
+                break
+                ;;
+            "OpenDNS (208.67.222.222)")
+                set_dns "OpenDNS" "208.67.222.222" "208.67.220.220"
+                break
+                ;;
+            "Custom DNS")
+                read -p "Enter Primary DNS: " custom1
+                read -p "Enter Secondary DNS (optional): " custom2
+                set_dns "Custom" "$custom1" "$custom2"
+                break
+                ;;
+            "Restore Backup")
+                if [ -f /etc/resolv.conf.bak ]; then
+                    cp /etc/resolv.conf.bak /etc/resolv.conf
+                    print_success "DNS backup restored!"
+                else
+                    print_error "No backup found."
+                fi
+                break
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option. Please choose 1-8.";;
+        esac
+    done
+}
+
+set_dns() {
+    local provider=$1
+    local dns1=$2
+    local dns2=$3
+
+    print_info "Applying $provider DNS..."
+
+    # Backup existing resolv.conf
+    if [ ! -f /etc/resolv.conf.bak ]; then
+        cp /etc/resolv.conf /etc/resolv.conf.bak 2>/dev/null || true
+    fi
+
+    # Stop NetworkManager from overriding DNS
+    print_info "Configuring NetworkManager to preserve DNS settings..."
+    
+    # Create NetworkManager conf.d directory if not exists
+    mkdir -p /etc/NetworkManager/conf.d
+    
+    # Create configuration to prevent DNS override
+    cat > /etc/NetworkManager/conf.d/99-zen-dns.conf << 'NMCONF'
+[main]
+dns=none
+systemd-resolved=false
+NMCONF
+
+    # Make resolv.conf immutable-ready
+    chattr -i /etc/resolv.conf 2>/dev/null || true
+
+    # Write new DNS
+    cat > /etc/resolv.conf << EOF
+# Zen DNS Configuration - $provider
+# Managed by: zen system dns
+# Do not edit manually - use 'sudo zen system dns' to change
+nameserver $dns1
+EOF
+
+    if [ -n "$dns2" ]; then
+        echo "nameserver $dns2" >> /etc/resolv.conf
+    fi
+
+    # Protect resolv.conf from being overwritten
+    chattr +i /etc/resolv.conf 2>/dev/null || true
+
+    # Restart NetworkManager to apply changes
+    systemctl restart NetworkManager 2>/dev/null || true
+
+    print_success "DNS successfully changed to $provider!"
+    print_info "NetworkManager configured to preserve DNS settings"
+    print_warning "To allow automatic DNS again, run: sudo chattr -i /etc/resolv.conf"
+}
+
+system_zram() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}             Zen ZRAM Manager                ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    options=("Install ZRAM" "Enable ZRAM" "Disable ZRAM" "Status" "About" "Back")
+    PS3="Enter choice (1-6): "
+
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "Install ZRAM")
+                require_root
+                print_info "Installing ZRAM tools..."
+                apt update
+                apt install -y zram-tools
+                print_success "ZRAM tools installed!"
+                break
+                ;;
+            "Enable ZRAM")
+                require_root
+                print_info "Enabling ZRAM..."
+                systemctl enable zramswap
+                systemctl start zramswap
+                print_success "ZRAM enabled!"
+                break
+                ;;
+            "Disable ZRAM")
+                require_root
+                print_info "Disabling ZRAM..."
+                systemctl stop zramswap
+                systemctl disable zramswap
+                print_success "ZRAM disabled!"
+                break
+                ;;
+            "Status")
+                echo ""
+                if systemctl is-active --quiet zramswap; then
+                    print_success "ZRAM is ACTIVE"
+                    echo ""
+                    zramctl 2>/dev/null || echo "Run 'zramctl' for detailed info"
+                else
+                    print_warning "ZRAM is INACTIVE"
+                fi
+                break
+                ;;
+            "About")
+                echo ""
+                echo "ZRAM creates a compressed block device in RAM for swap."
+                echo ""
+                echo "Benefits:"
+                echo "  - Faster than disk-based swap"
+                echo "  - Extends SSD lifespan by reducing writes"
+                echo "  - Effective memory compression"
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system zram
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+system_net() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}             Zen Network Info                ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    # Internal IP & Interfaces
+    echo -e "${YELLOW}[ Local Interfaces ]${NC}"
+    ip -4 -br addr show | awk '{printf "  %-15s %s\n", $1, $3}'
+
+    # Gateway / Router
+    echo -e "\n${YELLOW}[ Gateway / Router ]${NC}"
+    ip route | grep default | awk '{printf "  Default Gateway: %s via %s\n", $3, $5}'
+
+    # DNS Servers
+    echo -e "\n${YELLOW}[ DNS Servers ]${NC}"
+    grep "nameserver" /etc/resolv.conf 2>/dev/null | awk '{print "  " $0}' || echo "  No DNS configured"
+
+    # Active Connections Summary
+    echo -e "\n${YELLOW}[ Network Stats ]${NC}"
+    echo -e "  Active Connections: $(ss -tun 2>/dev/null | grep -c ESTAB || echo 0)"
+    echo -e "  Listening Ports (TCP): $(ss -tln 2>/dev/null | grep -c LISTEN || echo 0)"
+
+    echo ""
+}
+
+system_cleanup() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}            Zen System Cleanup               ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    # 1. Package Manager Cleanup
+    print_info "[1/5] Cleaning package manager cache..."
+    apt-get autoremove -y
+    apt-get autoclean -y
+    apt-get clean
+    print_success "Package cache cleaned"
+
+    # 2. Journal Logs Cleanup
+    print_info "[2/5] Cleaning system journal logs..."
+    journalctl --vacuum-time=2d || true
+    journalctl --vacuum-size=100M || true
+    print_success "Journal logs cleaned"
+
+    # 3. Thumbnail Cache Cleanup
+    print_info "[3/5] Cleaning thumbnail caches..."
+    rm -rf /home/*/.cache/thumbnails/* 2>/dev/null || true
+    rm -rf /root/.cache/thumbnails/* 2>/dev/null || true
+    print_success "Thumbnail cache cleaned"
+
+    # 4. Temporary Files
+    print_info "[4/5] Cleaning temporary files..."
+    rm -rf /tmp/* 2>/dev/null || true
+    rm -rf /var/tmp/* 2>/dev/null || true
+    print_success "Temporary files cleaned"
+
+    # 5. Pagecache refresh
+    print_info "[5/5] Refreshing system memory..."
+    sync
+    echo 1 > /proc/sys/vm/drop_caches
+    print_success "Memory refreshed"
+
+    echo ""
+    print_success "System cleanup completed!"
+}
+
+system_optimize() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}           Zen System Optimizer             ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+    print_warning "This will free up memory and clear caches without deleting important data."
+    echo ""
+
+    # 1. Sync filesystem
+    print_info "[1/6] Syncing filesystem..."
+    sync
+    print_success "Filesystem synced"
+
+    # 2. Clear PageCache, dentries and inodes
+    print_info "[2/6] Clearing memory caches..."
+    echo 3 > /proc/sys/vm/drop_caches
+    print_success "Memory caches cleared"
+
+    # 3. Clear swap if possible
+    print_info "[3/6] Optimizing swap..."
+    if [ "$(cat /proc/swaps | wc -l)" -gt 1 ]; then
+        local free_mem=$(free -m | awk '/^Mem:/{print $7}')
+        local swap_used=$(free -m | awk '/^Swap:/{print $3}')
+        if [ "$free_mem" -gt "$swap_used" ]; then
+            swapoff -a && swapon -a
+            print_success "Swap refreshed"
+        else
+            print_warning "Not enough free RAM to clear swap safely"
+        fi
+    else
+        print_info "No swap configured"
+    fi
+
+    # 4. Clear user cache (safe parts only)
+    print_info "[4/6] Clearing temporary user caches..."
+    rm -rf /tmp/* 2>/dev/null || true
+    rm -rf /var/tmp/* 2>/dev/null || true
+    for user_home in /home/*; do
+        rm -rf "$user_home/.cache/thumbnails"/* 2>/dev/null || true
+        rm -rf "$user_home/.cache/tracker3"/* 2>/dev/null || true
+    done
+    print_success "Temporary caches cleared"
+
+    # 5. Flush network buffers
+    print_info "[5/6] Flushing network buffers..."
+    ip -s -s neigh flush all 2>/dev/null || true
+    print_success "Network buffers flushed"
+
+    # 6. Run fstrim if SSD
+    print_info "[6/6] Running TRIM on SSDs..."
+    fstrim -av 2>/dev/null || print_info "TRIM not available or no SSD detected"
+
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║     System Optimization Complete!          ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # Show memory status
+    echo -e "${YELLOW}Memory Status:${NC}"
+    free -h
+}
+
+is_live_mode() {
+    # Check multiple indicators for live mode
+    if [ -f /run/live/medium/live/filesystem.squashfs ] || \
+       grep -q "boot=live" /proc/cmdline 2>/dev/null || \
+       [ -d /run/live ]; then
+        return 0  # true, is live mode
+    fi
+    return 1  # false, not live mode
+}
+
+system_mitigations() {
+    require_root
+
+    # Block execution in live mode
+    if is_live_mode; then
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}         Zen CPU Mitigations Manager        ${NC}"
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo ""
+        print_error "CPU Mitigations cannot be configured in Live Mode!"
+        echo ""
+        print_warning "This feature requires a permanently installed system."
+        print_info "Please install Zenclora OS to disk first, then use this feature."
+        echo ""
+        return
+    fi
+
+    local GRUB_FILE="/etc/default/grub"
+    local GRUB_D_FILE="/etc/default/grub.d/10-mitigations.cfg"
+    local current_state="auto"
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}         Zen CPU Mitigations Manager        ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    # Check current state from kernel cmdline and grub config
+    if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=.*mitigations=off" "$GRUB_D_FILE" 2>/dev/null; then
+        current_state="off (pending reboot)"
+    elif grep -q "mitigations=off" /proc/cmdline 2>/dev/null; then
+        current_state="off"
+    fi
+
+    echo -e "Current Status: $([[ "$current_state" == *"off"* ]] && echo -e "${YELLOW}OFF (Performance)${NC}" || echo -e "${GREEN}AUTO (Default)${NC}")"
+    echo ""
+    print_warning "Disabling mitigations improves performance but reduces security."
+    echo ""
+
+    options=("Enable (Auto)" "Disable (Performance)" "Back")
+    PS3="Select option (1-3): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "Enable (Auto)")
+                print_info "Setting mitigations to auto..."
+
+                # Clean main grub file
+                if [ -f "$GRUB_FILE" ]; then
+                    sed -i 's/ *mitigations=[a-z]*//g' "$GRUB_FILE"
+                fi
+
+                mkdir -p /etc/default/grub.d
+                cat > "$GRUB_D_FILE" << 'EOF'
+# Zenclora CPU Mitigations Configuration
+# Managed by: zen system mitigations
+# Status: AUTO (System Default)
+# MITIGATIONS_STATE=auto
+EOF
+                update-grub
+                print_success "Mitigations set to AUTO. Reboot required!"
+                break
+                ;;
+            "Disable (Performance)")
+                print_info "Disabling mitigations for performance..."
+
+                # Clean main grub file to avoid duplicates
+                if [ -f "$GRUB_FILE" ]; then
+                    sed -i 's/ *mitigations=[a-z]*//g' "$GRUB_FILE"
+                fi
+
+                # Write grub.d override
+                mkdir -p /etc/default/grub.d
+                cat > "$GRUB_D_FILE" << 'EOF'
+# Zenclora CPU Mitigations Configuration
+# Managed by: zen system mitigations
+# Status: OFF (High Performance)
+# MITIGATIONS_STATE=off
+GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT mitigations=off"
+EOF
+                update-grub
+                print_success "Mitigations DISABLED. Reboot required!"
+                break
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+system_info() {
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}                      Zen System Information                         ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+
+    # OS Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ OPERATING SYSTEM                                                │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "  Distro:        $(cat /etc/os-release 2>/dev/null | grep "^PRETTY_NAME" | cut -d'"' -f2)"
+    echo -e "  Kernel:        $(uname -r)"
+    echo -e "  Architecture:  $(uname -m)"
+    echo -e "  Hostname:      $(hostname)"
+    echo -e "  Uptime:        $(uptime -p)"
+    echo ""
+
+    # CPU Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ CPU                                                             │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "  Model:         $(grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | xargs)"
+    echo -e "  Cores:         $(nproc) cores"
+    echo -e "  Threads:       $(grep -c processor /proc/cpuinfo)"
+    echo -e "  Max Freq:      $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 2>/dev/null | awk '{printf "%.2f GHz", $1/1000000}' || echo "N/A")"
+    echo -e "  Governor:      $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "N/A")"
+    echo -e "  Load Average:  $(cat /proc/loadavg | awk '{print $1, $2, $3}')"
+    echo ""
+
+    # Memory Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ MEMORY                                                          │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    free -h | awk '/^Mem:/ {printf "  Total:         %s\n  Used:          %s\n  Free:          %s\n  Available:     %s\n", $2, $3, $4, $7}'
+    echo -e "  Swap Total:    $(free -h | awk '/^Swap:/ {print $2}')"
+    echo -e "  Swap Used:     $(free -h | awk '/^Swap:/ {print $3}')"
+    echo ""
+
+    # Storage Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ STORAGE                                                         │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    df -h / /home 2>/dev/null | awk 'NR>1 {printf "  %-15s %s total, %s used (%s), %s free\n", $6, $2, $3, $5, $4}'
+    echo ""
+    echo "  Block Devices:"
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT 2>/dev/null | grep -E "disk|part" | head -10 | sed 's/^/    /'
+    echo ""
+
+    # GPU Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ GRAPHICS                                                        │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    lspci 2>/dev/null | grep -iE "vga|3d|display" | cut -d':' -f3 | sed 's/^/  /'
+    if command -v glxinfo &>/dev/null; then
+        echo -e "  OpenGL:        $(glxinfo 2>/dev/null | grep "OpenGL version" | cut -d':' -f2 | xargs)"
+    fi
+    echo ""
+
+    # Network Information
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ NETWORK                                                         │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    ip -4 -br addr show | grep -v "^lo" | awk '{printf "  %-15s %s\n", $1, $3}'
+    echo -e "  Gateway:       $(ip route | grep default | awk '{print $3}')"
+    echo -e "  DNS:           $(grep nameserver /etc/resolv.conf 2>/dev/null | head -1 | awk '{print $2}')"
+    echo ""
+
+    # System Services
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ SERVICES                                                        │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "  Running:       $(systemctl list-units --type=service --state=running --no-pager 2>/dev/null | grep -c "\.service")"
+    echo -e "  Failed:        $(systemctl list-units --type=service --state=failed --no-pager 2>/dev/null | grep -c "\.service")"
+    echo ""
+
+    # Security Status
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│ SECURITY                                                        │${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "  Firewall:      $(systemctl is-active ufw 2>/dev/null || systemctl is-active firewalld 2>/dev/null || echo "inactive")"
+    echo -e "  AppArmor:      $(systemctl is-active apparmor 2>/dev/null || echo "inactive")"
+    echo -e "  SELinux:       $(getenforce 2>/dev/null || echo "disabled")"
+    local mitigation_status=$(cat /sys/devices/system/cpu/vulnerabilities/spectre_v2 2>/dev/null | grep -qi "mitigat" && echo "enabled" || echo "disabled/vulnerable")
+    echo -e "  Mitigations:   $mitigation_status"
+    echo ""
+}
+
+system_services() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}          Zen Service Manager               ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    read -p "Enter service name (e.g., nginx, docker): " service_name
+
+    if [ -z "$service_name" ]; then
+        print_error "No service name provided."
+        return
+    fi
+
+    # Check if service exists
+    if ! systemctl cat "$service_name" &>/dev/null; then
+        print_error "Service '$service_name' not found."
+        return
+    fi
+
+    # Get current status
+    echo ""
+    echo -e "${YELLOW}Service: $service_name${NC}"
+    echo -e "Status: $(systemctl is-active "$service_name" 2>/dev/null)"
+    echo -e "Enabled: $(systemctl is-enabled "$service_name" 2>/dev/null)"
+    echo ""
+
+    options=("Start" "Stop" "Restart" "Enable" "Disable" "Mask" "Unmask" "Status (detailed)" "View Logs" "Back")
+    PS3="Select action (1-10): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "Start")
+                require_root
+                systemctl start "$service_name"
+                print_success "Service $service_name started"
+                break
+                ;;
+            "Stop")
+                require_root
+                systemctl stop "$service_name"
+                print_success "Service $service_name stopped"
+                break
+                ;;
+            "Restart")
+                require_root
+                systemctl restart "$service_name"
+                print_success "Service $service_name restarted"
+                break
+                ;;
+            "Enable")
+                require_root
+                systemctl enable "$service_name"
+                print_success "Service $service_name enabled"
+                break
+                ;;
+            "Disable")
+                require_root
+                systemctl disable "$service_name"
+                print_success "Service $service_name disabled"
+                break
+                ;;
+            "Mask")
+                require_root
+                systemctl mask "$service_name"
+                print_success "Service $service_name masked"
+                break
+                ;;
+            "Unmask")
+                require_root
+                systemctl unmask "$service_name"
+                print_success "Service $service_name unmasked"
+                break
+                ;;
+            "Status (detailed)")
+                systemctl status "$service_name" --no-pager
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system services
+                ;;
+            "View Logs")
+                journalctl -u "$service_name" -n 50 --no-pager
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system services
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+system_packages() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}           Zen Package Viewer               ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    options=("List All Installed Packages" "Search Installed Package" "Package Details" "Recently Installed" "Package Count" "Large Packages" "Back")
+    PS3="Select option (1-7): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "List All Installed Packages")
+                dpkg -l | grep "^ii" | awk '{print $2}' | less
+                break
+                ;;
+            "Search Installed Package")
+                read -p "Enter package name to search: " pkg_search
+                dpkg -l | grep -i "$pkg_search" | less
+                break
+                ;;
+            "Package Details")
+                read -p "Enter package name: " pkg_name
+                dpkg -s "$pkg_name" 2>/dev/null || print_error "Package not found"
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system packages
+                ;;
+            "Recently Installed")
+                echo -e "${YELLOW}Recently Installed Packages:${NC}"
+                grep " install " /var/log/dpkg.log 2>/dev/null | tail -20 | awk '{print $1, $2, $4}'
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system packages
+                ;;
+            "Package Count")
+                echo ""
+                echo -e "Total installed packages: ${GREEN}$(dpkg -l | grep -c "^ii")${NC}"
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system packages
+                ;;
+            "Large Packages")
+                echo -e "${YELLOW}Top 20 Largest Packages:${NC}"
+                dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -rn | head -20 | awk '{printf "  %8.2f MB  %s\n", $1/1024, $2}'
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system packages
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+system_logs() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}            Zen Log Viewer                  ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    options=("System Logs (Recent)" "Kernel Logs" "Boot Logs" "Auth/Security Logs" "Application Logs" "Live Log Stream" "Journal Disk Usage" "Clear Old Logs" "Back")
+    PS3="Select option (1-9): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "System Logs (Recent)")
+                journalctl -n 100 --no-pager | less
+                break
+                ;;
+            "Kernel Logs")
+                journalctl -k -n 100 --no-pager | less
+                break
+                ;;
+            "Boot Logs")
+                journalctl -b --no-pager | less
+                break
+                ;;
+            "Auth/Security Logs")
+                journalctl _COMM=sudo -n 50 --no-pager 2>/dev/null || cat /var/log/auth.log 2>/dev/null | tail -50 | less
+                break
+                ;;
+            "Application Logs")
+                read -p "Enter application/service name: " app_name
+                journalctl -u "$app_name" -n 100 --no-pager | less
+                break
+                ;;
+            "Live Log Stream")
+                print_info "Press Ctrl+C to stop..."
+                journalctl -f
+                break
+                ;;
+            "Journal Disk Usage")
+                journalctl --disk-usage
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" system logs
+                ;;
+            "Clear Old Logs")
+                require_root
+                echo ""
+                echo "Current usage:"
+                journalctl --disk-usage
+                echo ""
+                read -p "Clear logs older than how many days? [7]: " days
+                days=${days:-7}
+                journalctl --vacuum-time="${days}d"
+                print_success "Old logs cleared"
+                break
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+system_netfix() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}          Zen Network Reset Tool            ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${YELLOW}This will reset all network rules and configurations:${NC}"
+    echo "  • Flush all iptables rules"
+    echo "  • Reset nftables (if present)"
+    echo "  • Clear DNS cache"
+    echo "  • Reset routing table"
+    echo "  • Restart network services"
+    echo ""
+    echo -e "${RED}WARNING: This may temporarily disconnect your network!${NC}"
+    echo ""
+    read -p "Are you sure? (y/N): " confirm
+
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        print_info "Operation cancelled."
+        return
+    fi
+
+    echo ""
+
+    # 1. Flush iptables
+    print_info "[1/6] Flushing iptables rules..."
+    iptables -F 2>/dev/null || true
+    iptables -X 2>/dev/null || true
+    iptables -t nat -F 2>/dev/null || true
+    iptables -t nat -X 2>/dev/null || true
+    iptables -t mangle -F 2>/dev/null || true
+    iptables -t mangle -X 2>/dev/null || true
+    iptables -P INPUT ACCEPT 2>/dev/null || true
+    iptables -P FORWARD ACCEPT 2>/dev/null || true
+    iptables -P OUTPUT ACCEPT 2>/dev/null || true
+    
+    # Same for ip6tables
+    ip6tables -F 2>/dev/null || true
+    ip6tables -X 2>/dev/null || true
+    ip6tables -P INPUT ACCEPT 2>/dev/null || true
+    ip6tables -P FORWARD ACCEPT 2>/dev/null || true
+    ip6tables -P OUTPUT ACCEPT 2>/dev/null || true
+    print_success "iptables rules flushed"
+
+    # 2. Reset nftables
+    print_info "[2/6] Resetting nftables..."
+    nft flush ruleset 2>/dev/null || true
+    print_success "nftables reset"
+
+    # 3. Clear DNS cache
+    print_info "[3/6] Clearing DNS cache..."
+    systemctl restart systemd-resolved 2>/dev/null || true
+    resolvectl flush-caches 2>/dev/null || true
+    print_success "DNS cache cleared"
+
+    # 4. Unlock resolv.conf if locked
+    print_info "[4/6] Unlocking resolv.conf..."
+    chattr -i /etc/resolv.conf 2>/dev/null || true
+    rm -f /etc/NetworkManager/conf.d/99-zen-dns.conf 2>/dev/null || true
+    print_success "resolv.conf unlocked"
+
+    # 5. Flush routing cache
+    print_info "[5/6] Flushing routing cache..."
+    ip route flush cache 2>/dev/null || true
+    ip -s -s neigh flush all 2>/dev/null || true
+    print_success "Routing cache flushed"
+
+    # 6. Restart network services
+    print_info "[6/6] Restarting network services..."
+    systemctl restart NetworkManager 2>/dev/null || true
+    systemctl restart networking 2>/dev/null || true
+    print_success "Network services restarted"
+
+    echo ""
+    print_success "Network reset complete!"
+    echo ""
+    system_net
+}
+
+system_aptfix() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}            Zen APT Repair Tool             ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+    print_info "Scanning for APT issues..."
+    echo ""
+
+    local issues_found=0
+
+    print_info "[1/6] Checking for package locks..."
+    if fuser /var/lib/dpkg/lock-frontend &>/dev/null || fuser /var/lib/apt/lists/lock &>/dev/null; then
+        print_warning "Package locks detected!"
+        echo ""
+        echo "Processes holding locks:"
+        fuser -v /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock 2>&1 || true
+        echo ""
+        read -p "Kill these processes and remove locks? (y/N): " kill_confirm
+        if [[ "$kill_confirm" =~ ^[Yy]$ ]]; then
+            killall apt apt-get dpkg 2>/dev/null || true
+            rm -f /var/lib/dpkg/lock-frontend
+            rm -f /var/lib/apt/lists/lock
+            rm -f /var/cache/apt/archives/lock
+            rm -f /var/lib/dpkg/lock
+            print_success "Locks removed"
+        fi
+        issues_found=1
+    else
+        print_success "No package locks found"
+    fi
+
+    print_info "[2/6] Checking for broken packages..."
+    broken=$(dpkg -l | awk '/^(iF|iU|iH|.W|.R)/ {print}' | wc -l)
+    if [ "$broken" -gt 0 ]; then
+        print_warning "Found $broken broken/incomplete packages"
+        dpkg -l | awk '/^(iF|iU|iH|.W|.R)/ {print}'
+        issues_found=1
+    else
+        print_success "No broken packages found"
+    fi
+
+    print_info "[3/6] Checking for half-installed packages..."
+    half_installed=$(dpkg --audit 2>&1 | grep -c "." || true)
+    if [ "$half_installed" -gt 0 ]; then
+        print_warning "Found packages in inconsistent state"
+        dpkg --audit
+        issues_found=1
+    else
+        print_success "No half-installed packages found"
+    fi
+
+    # 4. Fix broken packages
+    print_info "[4/6] Attempting to fix broken packages..."
+    dpkg --configure -a
+    apt-get install -f -y
+    print_success "Package repair attempted"
+
+    # 5. Clean package cache
+    print_info "[5/6] Cleaning package cache..."
+    apt-get clean
+    apt-get autoclean
+    print_success "Cache cleaned"
+
+    # 6. Update package lists
+    print_info "[6/6] Updating package lists..."
+    apt-get update --fix-missing
+    print_success "Package lists updated"
+
+    echo ""
+    if [ "$issues_found" -eq 1 ]; then
+        print_warning "Issues were found and repair was attempted."
+        print_info "Run 'sudo apt update && sudo apt upgrade' to verify fixes."
+    else
+        print_success "APT system is healthy!"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ZEN TOOLS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+tools_formatusb() {
+    require_root
+
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}            Zen USB Formatter               ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    # Identify system/boot disks to exclude
+    local root_dev=$(lsblk -no PKNAME $(findmnt -no SOURCE /) 2>/dev/null || df / | tail -1 | awk '{print $1}' | sed 's/[0-9]*$//' | sed 's|/dev/||')
+    local boot_dev=$(lsblk -no PKNAME $(findmnt -no SOURCE /boot) 2>/dev/null 2>/dev/null)
+    local efi_dev=$(lsblk -no PKNAME $(findmnt -no SOURCE /boot/efi) 2>/dev/null 2>/dev/null)
+
+    # List only removable/USB devices (exclude system disks)
+    echo -e "${YELLOW}Available removable/USB devices:${NC}"
+    echo ""
+
+    local found_devices=0
+    while IFS= read -r line; do
+        local dev_name=$(echo "$line" | awk '{print $1}' | sed 's/[^a-zA-Z0-9]//g')
+        # Skip system disks
+        [[ "$dev_name" == "$root_dev" ]] && continue
+        [[ -n "$boot_dev" && "$dev_name" == "$boot_dev" ]] && continue
+        [[ -n "$efi_dev" && "$dev_name" == "$efi_dev" ]] && continue
+        # Skip nvme and system-typical devices that are not removable
+        [[ "$dev_name" == nvme* ]] && continue
+
+        # Check if device is removable
+        local removable=$(cat /sys/block/$dev_name/removable 2>/dev/null)
+        local is_usb=$(readlink -f /sys/block/$dev_name 2>/dev/null | grep -c "usb")
+
+        if [[ "$removable" == "1" ]] || [[ "$is_usb" -gt 0 ]]; then
+            echo "$line"
+            found_devices=1
+        fi
+    done < <(lsblk -d -o NAME,SIZE,TYPE,VENDOR,MODEL | grep "disk" | grep -v "loop")
+
+    echo ""
+
+    if [ "$found_devices" -eq 0 ]; then
+        print_warning "No removable/USB devices found."
+        print_info "Make sure your USB drive is plugged in."
+        return
+    fi
+
+    echo -e "${RED}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  WARNING: Formatting will ERASE ALL DATA on the device!    ║${NC}"
+    echo -e "${RED}║  Only removable/USB devices are shown above.               ║${NC}"
+    echo -e "${RED}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    read -p "Enter device name (e.g., sdb, sdc - WITHOUT /dev/): " device
+
+    if [ -z "$device" ]; then
+        print_error "No device specified."
+        return
+    fi
+
+    # Validate device exists
+    if [ ! -b "/dev/$device" ]; then
+        print_error "Device /dev/$device not found."
+        return
+    fi
+
+    # Prevent formatting system drives (multiple checks)
+    local root_device=$(lsblk -no PKNAME $(findmnt -no SOURCE /) 2>/dev/null || df / | tail -1 | awk '{print $1}' | sed 's/[0-9]*$//' | sed 's|/dev/||')
+    if [ "$device" = "$root_device" ]; then
+        print_error "Cannot format the system drive!"
+        return
+    fi
+
+    # Check if device is actually removable/USB
+    local dev_removable=$(cat /sys/block/$device/removable 2>/dev/null)
+    local dev_is_usb=$(readlink -f /sys/block/$device 2>/dev/null | grep -c "usb")
+    if [[ "$dev_removable" != "1" ]] && [[ "$dev_is_usb" -eq 0 ]]; then
+        print_error "Device /dev/$device does not appear to be a removable/USB device!"
+        print_warning "For safety, only removable/USB devices can be formatted."
+        return
+    fi
+
+    # Extra check: ensure no system mount points are on this device
+    local sys_mounts=$(lsblk -no MOUNTPOINT /dev/$device 2>/dev/null | grep -cE "^/$|^/boot|^/home|^/var|^/usr|^/etc")
+    if [ "$sys_mounts" -gt 0 ]; then
+        print_error "Device /dev/$device contains system mount points! Cannot format."
+        return
+    fi
+
+    echo ""
+    echo "Select filesystem:"
+    fs_options=("FAT32 (Windows/Mac/Linux compatible)" "NTFS (Windows compatible)" "ext4 (Linux only)" "exFAT (Large files, cross-platform)" "Cancel")
+    PS3="Select filesystem (1-5): "
+
+    select fs_opt in "${fs_options[@]}"; do
+        case $fs_opt in
+            "FAT32 (Windows/Mac/Linux compatible)")
+                fs_type="vfat"
+                fs_name="FAT32"
+                break
+                ;;
+            "NTFS (Windows compatible)")
+                fs_type="ntfs"
+                fs_name="NTFS"
+                break
+                ;;
+            "ext4 (Linux only)")
+                fs_type="ext4"
+                fs_name="ext4"
+                break
+                ;;
+            "exFAT (Large files, cross-platform)")
+                fs_type="exfat"
+                fs_name="exFAT"
+                break
+                ;;
+            "Cancel")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+
+    read -p "Enter label for the drive [ZEN_USB]: " label
+    label=${label:-ZEN_USB}
+
+    echo ""
+    echo -e "${RED}FINAL WARNING!${NC}"
+    echo "Device: /dev/$device"
+    echo "Filesystem: $fs_name"
+    echo "Label: $label"
+    echo ""
+    read -p "Type 'FORMAT' to confirm: " confirm
+
+    if [ "$confirm" != "FORMAT" ]; then
+        print_info "Operation cancelled."
+        return
+    fi
+
+    # Unmount all partitions
+    print_info "Unmounting device..."
+    umount /dev/${device}* 2>/dev/null || true
+
+    # Create new partition table and partition
+    print_info "Creating partition table..."
+    parted -s /dev/$device mklabel msdos
+    parted -s /dev/$device mkpart primary 1MiB 100%
+
+    sleep 1
+
+    # Format
+    print_info "Formatting with $fs_name..."
+    case $fs_type in
+        "vfat")
+            mkfs.vfat -F 32 -n "$label" /dev/${device}1
+            ;;
+        "ntfs")
+            mkfs.ntfs -f -L "$label" /dev/${device}1
+            ;;
+        "ext4")
+            mkfs.ext4 -L "$label" /dev/${device}1
+            ;;
+        "exfat")
+            mkfs.exfat -n "$label" /dev/${device}1
+            ;;
+    esac
+
+    print_success "USB drive formatted successfully!"
+    echo ""
+    lsblk -o NAME,SIZE,FSTYPE,LABEL /dev/$device
+}
+
+tools_debinstaller() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}           Zen DEB Installer                ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    options=("Install .deb file" "Install from URL" "List Recently Installed" "Back")
+    PS3="Select option (1-4): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "Install .deb file")
+                read -p "Enter path to .deb file: " deb_path
+                if [ ! -f "$deb_path" ]; then
+                    print_error "File not found: $deb_path"
+                    return
+                fi
+                require_root
+                print_info "Installing $deb_path..."
+                dpkg -i "$deb_path" || apt-get install -f -y
+                print_success "Installation complete"
+                break
+                ;;
+            "Install from URL")
+                read -p "Enter URL of .deb file: " deb_url
+                require_root
+                local tmp_deb="/tmp/zen_install_$(date +%s).deb"
+                print_info "Downloading..."
+                wget -O "$tmp_deb" "$deb_url" || { print_error "Download failed"; return; }
+                print_info "Installing..."
+                dpkg -i "$tmp_deb" || apt-get install -f -y
+                rm -f "$tmp_deb"
+                print_success "Installation complete"
+                break
+                ;;
+            "List Recently Installed")
+                echo ""
+                echo -e "${YELLOW}Recently installed .deb packages:${NC}"
+                grep "status installed" /var/log/dpkg.log 2>/dev/null | tail -20
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" tools debinstaller
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+tools_filemanager() {
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}          Zen File Manager Tools            ${NC}"
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo ""
+
+    options=("Change Permissions" "Change Ownership" "Find Files" "Find Large Files" "Delete Files" "Back")
+    PS3="Select option (1-6): "
+
+    select opt in "${options[@]}"; do
+        case $opt in
+            "Change Permissions")
+                echo ""
+                read -p "Enter file/directory path: " target_path
+                if [ ! -e "$target_path" ]; then
+                    print_error "Path not found: $target_path"
+                    return
+                fi
+                echo ""
+                echo "Current permissions:"
+                ls -la "$target_path"
+                echo ""
+                echo "Common permissions:"
+                echo "  644 - Read/write owner, read others (files)"
+                echo "  755 - Execute for all, write owner (scripts)"
+                echo "  700 - Owner only, full access"
+                echo "  777 - Full access for everyone (dangerous!)"
+                echo ""
+                read -p "Enter permission (e.g., 755): " perms
+                read -p "Apply recursively? (y/N): " recursive
+                require_root
+                if [[ "$recursive" =~ ^[Yy]$ ]]; then
+                    chmod -R "$perms" "$target_path"
+                else
+                    chmod "$perms" "$target_path"
+                fi
+                print_success "Permissions changed"
+                ls -la "$target_path"
+                break
+                ;;
+            "Change Ownership")
+                echo ""
+                read -p "Enter file/directory path: " target_path
+                if [ ! -e "$target_path" ]; then
+                    print_error "Path not found: $target_path"
+                    return
+                fi
+                echo ""
+                echo "Current ownership:"
+                ls -la "$target_path"
+                echo ""
+                read -p "Enter new owner (user:group or just user): " owner
+                read -p "Apply recursively? (y/N): " recursive
+                require_root
+                if [[ "$recursive" =~ ^[Yy]$ ]]; then
+                    chown -R "$owner" "$target_path"
+                else
+                    chown "$owner" "$target_path"
+                fi
+                print_success "Ownership changed"
+                ls -la "$target_path"
+                break
+                ;;
+            "Find Files")
+                echo ""
+                read -p "Enter directory to search in [/]: " search_dir
+                search_dir=${search_dir:-/}
+                read -p "Enter filename pattern (e.g., *.log): " pattern
+                echo ""
+                echo -e "${YELLOW}Results:${NC}"
+                find "$search_dir" -name "$pattern" 2>/dev/null | head -50
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" tools filemanager
+                ;;
+            "Find Large Files")
+                echo ""
+                read -p "Enter directory to search in [/]: " search_dir
+                search_dir=${search_dir:-/}
+                read -p "Minimum size in MB [100]: " min_size
+                min_size=${min_size:-100}
+                echo ""
+                echo -e "${YELLOW}Files larger than ${min_size}MB:${NC}"
+                find "$search_dir" -type f -size +${min_size}M -exec ls -lh {} \; 2>/dev/null | head -30
+                echo ""
+                read -p "Press Enter to continue..."
+                exec "$0" tools filemanager
+                ;;
+            "Delete Files")
+                echo ""
+                read -p "Enter file/directory path to delete: " target_path
+                if [ ! -e "$target_path" ]; then
+                    print_error "Path not found: $target_path"
+                    return
+                fi
+                echo ""
+                echo "Target: $target_path"
+                if [ -d "$target_path" ]; then
+                    echo "Type: Directory ($(find "$target_path" -type f 2>/dev/null | wc -l) files)"
+                else
+                    echo "Type: File ($(ls -lh "$target_path" | awk '{print $5}'))"
+                fi
+                echo ""
+                echo -e "${RED}WARNING: This action cannot be undone!${NC}"
+                read -p "Type 'DELETE' to confirm: " confirm
+                if [ "$confirm" = "DELETE" ]; then
+                    require_root
+                    rm -rf "$target_path"
+                    print_success "Deleted: $target_path"
+                else
+                    print_info "Operation cancelled."
+                fi
+                break
+                ;;
+            "Back")
+                return
+                ;;
+            *) print_error "Invalid option.";;
+        esac
+    done
+}
+
+cmd_tools() {
+    local tool=$1
+
+    if [ -z "$tool" ]; then
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}              Zen Tools                     ${NC}"
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo ""
+        echo "Available tools:"
+        echo "  ${BOLD}formatusb${NC}     - Format USB drives"
+        echo "  ${BOLD}debinstaller${NC}  - Install .deb packages"
+        echo "  ${BOLD}filemanager${NC}   - File management utilities"
+        echo ""
+        echo "Usage: zen tools <tool>"
+        exit 0
+    fi
+
+    case $tool in
+        formatusb)
+            tools_formatusb
+            ;;
+        debinstaller)
+            tools_debinstaller
+            ;;
+        filemanager)
+            tools_filemanager
+            ;;
+        *)
+            print_error "Unknown tool: $tool"
+            echo "Available: formatusb, debinstaller, filemanager"
+            exit 1
+            ;;
+    esac
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cmd_update() {
+    require_root
+
+    print_banner
+    echo -e "${BLUE}Updating System...${NC}"
+    echo ""
+
+    # 1. Update package lists
+    print_info "[1/4] Updating package lists..."
+    apt update
+    print_success "Package lists updated"
+
+    # 2. Upgrade packages
+    print_info "[2/4] Upgrading packages..."
+    apt upgrade -y
+    print_success "Packages upgraded"
+
+    # 3. Full upgrade (handles dependencies)
+    print_info "[3/4] Performing full upgrade..."
+    apt full-upgrade -y
+    print_success "Full upgrade completed"
+
+    # 4. Clean up
+    print_info "[4/4] Cleaning up..."
+    apt autoremove -y
+    apt autoclean -y
+    print_success "Cleanup completed"
+
+    # Update flatpak if installed
+    if command -v flatpak &> /dev/null; then
+        echo ""
+        print_info "Updating Flatpak packages..."
+        flatpak update -y
+        print_success "Flatpak packages updated"
+    fi
+
+    # Update snap if installed
+    if command -v snap &> /dev/null; then
+        echo ""
+        print_info "Updating Snap packages..."
+        snap refresh
+        print_success "Snap packages updated"
+    fi
+
+    echo ""
+    print_success "System update completed!"
+}
+
+cmd_install() {
+    if [ $# -eq 0 ]; then
+        print_error "Usage: zen install <package> [package...]"
+        echo ""
+        echo "Run 'zen list' to see available packages."
+        exit 1
+    fi
+
+    # Validate all packages first
+    for package in "$@"; do
+        if [ -z "${PACKAGES[$package]}" ]; then
+            print_error "Unknown package: $package"
+            echo ""
+            echo "Run 'zen list' to see available packages."
+            exit 1
+        fi
+    done
+
+    require_root
+
+    print_banner
+
+    for package in "$@"; do
+        echo -e "${GREEN}Installing: ${BOLD}$package${NC}"
+        echo ""
+
+        # Call install function
+        if declare -f "install_$package" > /dev/null; then
+            install_$package
+            echo ""
+            print_success "$package installed successfully!"
+            echo ""
+        else
+            print_error "Install function for '$package' not implemented."
+            exit 1
+        fi
+    done
+}
+
+cmd_remove() {
+    if [ $# -eq 0 ]; then
+        print_error "Usage: zen remove <package> [package...]"
+        echo ""
+        echo "Run 'zen list' to see available packages."
+        exit 1
+    fi
+
+    # Validate all packages first
+    for package in "$@"; do
+        if [ -z "${PACKAGES[$package]}" ]; then
+            print_error "Unknown package: $package"
+            echo ""
+            echo "Run 'zen list' to see available packages."
+            exit 1
+        fi
+    done
+
+    require_root
+
+    print_banner
+
+    for package in "$@"; do
+        echo -e "${RED}Removing: ${BOLD}$package${NC}"
+        echo ""
+
+        # Call remove function
+        if declare -f "remove_$package" > /dev/null; then
+            remove_$package
+            echo ""
+            print_success "$package removed successfully!"
+            echo ""
+        else
+            print_error "Remove function for '$package' not implemented."
+            exit 1
+        fi
+    done
+
+    # Run autoremove to clean up unused dependencies
+    echo ""
+    print_info "Cleaning up unused dependencies..."
+    apt autoremove -y
+    print_success "Cleanup completed!"
+}
+
+cmd_system() {
+    local action=$1
+
+    if [ -z "$action" ]; then
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}            Zen System Utilities             ${NC}"
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        echo ""
+        echo "Available actions:"
+        echo "  ${BOLD}dns${NC}         - Configure DNS servers"
+        echo "  ${BOLD}zram${NC}        - Manage ZRAM swap"
+        echo "  ${BOLD}net${NC}         - Show network information"
+        echo "  ${BOLD}cleanup${NC}     - Clean system caches and logs"
+        echo "  ${BOLD}optimize${NC}    - Quick system optimization (free memory/cache)"
+        echo "  ${BOLD}mitigations${NC} - CPU security mitigations (Spectre/Meltdown)"
+        echo "  ${BOLD}info${NC}        - Detailed system information"
+        echo "  ${BOLD}services${NC}    - Manage systemd services"
+        echo "  ${BOLD}packages${NC}    - View installed packages"
+        echo "  ${BOLD}logs${NC}        - View system logs"
+        echo "  ${BOLD}netfix${NC}      - Reset network rules (iptables/DNS)"
+        echo "  ${BOLD}aptfix${NC}      - Fix APT/dpkg issues"
+        echo ""
+        echo "Usage: zen system <action>"
+        exit 0
+    fi
+
+    case $action in
+        dns)
+            system_dns
+            ;;
+        zram)
+            system_zram
+            ;;
+        net)
+            system_net
+            ;;
+        cleanup)
+            system_cleanup
+            ;;
+        optimize)
+            system_optimize
+            ;;
+        mitigations)
+            system_mitigations
+            ;;
+        info)
+            system_info
+            ;;
+        services)
+            system_services
+            ;;
+        packages)
+            system_packages
+            ;;
+        logs)
+            system_logs
+            ;;
+        netfix)
+            system_netfix
+            ;;
+        aptfix)
+            system_aptfix
+            ;;
+        *)
+            print_error "Unknown system action: $action"
+            echo "Available: dns, zram, net, cleanup, optimize, mitigations, info, services, packages, logs, netfix, aptfix"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_list() {
+    print_banner
+
+    echo -e "${BOLD}Available Packages:${NC}"
+    echo ""
+
+    echo -e "${YELLOW}[Packs] - Bundle installs from Debian repos${NC}"
+    echo "    gaming-pack     wine, winetricks, gamemode, mangohud, vulkan"
+    echo "    editor-pack     gimp, krita, inkscape, pinta"
+    echo "    producer-pack   ardour, audacity, lmms, musescore, hydrogen"
+    echo "    office-pack     libreoffice, evince, simple-scan"
+    echo "    dev-pack        build-essential, git, python3, nodejs, npm, cmake"
+    echo ""
+
+    echo -e "${YELLOW}[Gaming]${NC}"
+    echo "    steam"
+    echo ""
+
+    echo -e "${YELLOW}[Browsers]${NC}"
+    echo "    brave, chrome, librewolf, mullvad-browser"
+    echo ""
+
+    echo -e "${YELLOW}[AI]${NC}"
+    echo "    cursor, windsurf, antigravity, ollama"
+    echo ""
+
+    echo -e "${YELLOW}[Productivity]${NC}"
+    echo "    spotify, signal"
+    echo ""
+
+    echo -e "${YELLOW}[Privacy]${NC}"
+    echo "    mullvad-vpn, mullvad-browser, librewolf"
+    echo ""
+
+    echo -e "${YELLOW}[Dev Tools]${NC}"
+    echo "    vscode, rust, docker"
+    echo ""
+
+    echo -e "${YELLOW}[System]${NC}"
+    echo "    flatpak, snap, pacstall, liquorix, nvidia-driver"
+    echo ""
+
+    echo -e "${CYAN}Usage:${NC}"
+    echo "    zen install <packages...> Install one or more packages"
+    echo "    zen remove <packages...>  Remove one or more packages"
+    echo "    zen update               Update entire system"
+    echo ""
+}
+
+cmd_help() {
+    print_banner
+
+    echo -e "${BOLD}Usage:${NC} zen <command> [options]"
+    echo ""
+    echo -e "${BOLD}Commands:${NC}"
+    echo -e "  ${GREEN}install${NC} <packages...> Install one or more packages"
+    echo -e "  ${RED}remove${NC} <packages...>  Remove one or more packages"
+    echo -e "  ${BLUE}update${NC}               Update entire system"
+    echo -e "  ${CYAN}system${NC} <action>      System utilities"
+    echo -e "  ${PURPLE}tools${NC} <tool>         System tools (formatusb, debinstaller, filemanager)"
+    echo -e "  ${YELLOW}list${NC}                 List available packages"
+    echo -e "  help                 Show this help message"
+    echo ""
+    echo -e "${BOLD}System Actions:${NC}"
+    echo "  dns         - Configure DNS servers"
+    echo "  zram        - Manage ZRAM swap"
+    echo "  net         - Show network information"
+    echo "  cleanup     - Clean system caches and logs"
+    echo "  optimize    - Quick system optimization (free memory/cache)"
+    echo "  mitigations - CPU security mitigations (Spectre/Meltdown)"
+    echo "  info        - Detailed system information"
+    echo "  services    - Manage systemd services"
+    echo "  packages    - View installed packages"
+    echo "  logs        - View system logs"
+    echo "  netfix      - Reset network rules (iptables/DNS)"
+    echo "  aptfix      - Fix APT/dpkg issues"
+    echo ""
+    echo -e "${BOLD}Tools:${NC}"
+    echo "  formatusb    - Format USB drives (FAT32, NTFS, ext4, exFAT)"
+    echo "  debinstaller - Install .deb packages from file or URL"
+    echo "  filemanager  - File permissions, ownership, search, delete"
+    echo ""
+    echo -e "${BOLD}Examples:${NC}"
+    echo "  zen install gaming-pack"
+    echo "  zen install steam brave"
+    echo "  zen remove chrome"
+    echo "  zen update"
+    echo "  zen system dns"
+    echo "  zen system optimize"
+    echo "  zen system info"
+    echo "  zen tools formatusb"
+    echo ""
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN ENTRY POINT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+main() {
+    local command=$1
+    shift 2>/dev/null || true
+
+    case $command in
+        install)
+            cmd_install "$@"
+            ;;
+        remove|uninstall)
+            cmd_remove "$@"
+            ;;
+        update|upgrade)
+            cmd_update
+            ;;
+        system|sys)
+            cmd_system "$@"
+            ;;
+        tools|tool)
+            cmd_tools "$@"
+            ;;
+        list|ls)
+            cmd_list
+            ;;
+        help|--help|-h)
+            cmd_help
+            ;;
+        version|--version|-v)
+            echo "Zen Package Manager v$ZEN_VERSION"
+            ;;
+        "")
+            cmd_help
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            echo "Run 'zen help' for usage information."
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
+
+
+
+

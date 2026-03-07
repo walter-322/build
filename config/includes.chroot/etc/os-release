@@ -1,10 +1,10 @@
 PRETTY_NAME="Zenclora OS"
 NAME="Zenclora OS"
-CODE_NAME="Zenny"
+VERSION_CODENAME="Ardenweald"
 ID=debian
 ID_LIKE=debian
 RELEASE_TYPE=stable
-VERSION="1.2"
-VERSION_ID="1.2"
+VERSION="2.0"
+VERSION_ID="2.0"
 
 

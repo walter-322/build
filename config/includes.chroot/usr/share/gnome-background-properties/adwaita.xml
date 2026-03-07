@@ -2,9 +2,9 @@
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
 <wallpapers>
   <wallpaper deleted="false">
-    <name>Default Background</name>
-    <filename>/usr/share/backgrounds/default.jpg</filename>
-    <filename-dark>/usr/share/backgrounds/default.jpg</filename-dark>
+    <name>Nature</name>
+    <filename>/usr/share/backgrounds/nature.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/nature.jpg</filename-dark>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#3071AE</pcolor>

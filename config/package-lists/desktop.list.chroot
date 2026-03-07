@@ -2,10 +2,13 @@ gnome-shell
 gnome-session  
 gnome-control-center
 gnome-terminal  
+gnome-system-monitor
 nautilus  
 gnome-shell-extensions 
 gnome-tweaks 
 gnome-shell-extension-dashtodock
+xdg-desktop-portal-gnome
+fonts-noto-color-emoji
 firefox-esr 
 network-manager
 network-manager-gnome
@@ -28,3 +31,5 @@ unzip
 file-roller
 gedit
 vlc
+dbus-x11
+fonts-noto-cjk

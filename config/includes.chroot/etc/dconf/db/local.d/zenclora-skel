@@ -1,20 +1,21 @@
 [org/gnome/shell]
-enabled-extensions=['dash-to-dock@micxgx.gmail.com']
+enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com']
 favorite-apps=['firefox-esr.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']
 
 [org/gnome/shell/extensions/dash-to-dock]
 always-center-icons=true
 apply-custom-theme=false
-background-color='rgb(192,191,188)'
-background-opacity=0.25
+background-color='rgb(15,15,15)'
+background-opacity=0.4
 custom-background-color=true
 custom-theme-shrink=true
 dance-urgent-applications=true
 dash-max-icon-size=32
-dock-fixed=true
-dock-position='BOTTOM'
-extend-height=true
+dock-fixed=false
+dock-position='RIGHT'
+extend-height=false
 height-fraction=0.90000000000000002
+intellihide=true
 hide-tooltip=false
 icon-size-fixed=true
 isolate-monitors=false
@@ -37,10 +38,11 @@ transparency-mode='FIXED'
 workspace-agnostic-urgent-windows=true
 
 [org/gnome/desktop/wm/preferences]
-button-layout='appmenu:minimize,close'
+theme='Orchis-Dark-Compact'
+button-layout=':minimize,close'
 
 [org/gnome/desktop/interface]
-gtk-theme='Orchis-Dark'
+gtk-theme='Orchis-Dark-Compact'
 color-scheme='prefer-dark'
 icon-theme='Numix-Circle'
 
@@ -56,8 +58,8 @@ tap-to-click=true
 [org/gnome/desktop/background]
 color-shading-type='solid'
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/default.jpg'
-picture-uri-dark='file:///usr/share/backgrounds/default.jpg'
+picture-uri='file:///usr/share/backgrounds/night.png'
+picture-uri-dark='file:///usr/share/backgrounds/night.png'
 primary-color='#000000000000'
 secondary-color='#000000000000'
 
@@ -65,7 +67,7 @@ secondary-color='#000000000000'
 picture-uri='file:///usr/share/backgrounds/default.jpg'
 
 [org/gnome/shell/extensions/user-theme]
-name='Orchis-Dark'
+name='Orchis-Dark-Compact'
 
 [org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
 visible-name='Zenclora Terminal'
