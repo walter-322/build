@@ -147,16 +147,16 @@ remove_gaming-pack() {
 
 install_editor-pack() {
     print_info "Installing Editor Pack..."
-    print_info "Packages: gimp, krita, inkscape, pinta"
+    print_info "Packages: gimp, krita, inkscape"
     echo ""
 
     sudo apt update
-    sudo apt install -y gimp krita inkscape pinta
+    sudo apt install -y gimp krita inkscape
 }
 
 remove_editor-pack() {
     print_info "Removing Editor Pack..."
-    sudo apt remove -y gimp krita inkscape pinta || true
+    sudo apt remove -y gimp krita inkscape || true
     sudo apt autoremove -y
 }
 
@@ -2190,7 +2190,7 @@ cmd_list() {
 cmd_help() {
     print_banner
 
-    echo -e "${BOLD}Usage:${NC} zen <command> [options]"
+    echo -e "${BOLD}Usage:${NC} zen <command> [options]  (or: zpm <command>)"
     echo ""
     echo -e "${BOLD}Commands:${NC}"
     echo -e "  ${GREEN}install${NC} <packages...> Install one or more packages"
