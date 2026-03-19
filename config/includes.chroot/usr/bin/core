@@ -1,0 +1,319 @@
+#!/bin/bash
+# core — Corex Linux Package Manager
+# Replaces: zen (Zenclora)
+# License: GPL-3.0
+
+VERSION="1.0"
+BOLD='\e[1m'
+CYAN='\e[36m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+RED='\e[31m'
+RESET='\e[0m'
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+info()    { echo -e "${CYAN}[core]${RESET} $*"; }
+success() { echo -e "${GREEN}[✔]${RESET} $*"; }
+warn()    { echo -e "${YELLOW}[!]${RESET} $*"; }
+error()   { echo -e "${RED}[✘]${RESET} $*"; exit 1; }
+
+require_root() {
+    [[ $EUID -ne 0 ]] && error "This command requires root. Run with sudo."
+}
+
+# ─── Third-party install functions ───────────────────────────────────────────
+
+install_brave() {
+    info "Installing Brave Browser..."
+    curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+        https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg arch=amd64] \
+        https://brave-browser-apt-release.s3.brave.com/ stable main" \
+        > /etc/apt/sources.list.d/brave-browser-release.list
+    apt-get update -q && apt-get install -y brave-browser
+}
+
+install_chrome() {
+    info "Installing Google Chrome..."
+    curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o /tmp/chrome.deb
+    apt-get install -y /tmp/chrome.deb && rm /tmp/chrome.deb
+}
+
+install_librewolf() {
+    info "Installing LibreWolf..."
+    curl -fsSL https://deb.librewolf.net/keyring.gpg | gpg --dearmor \
+        -o /usr/share/keyrings/librewolf.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/librewolf.gpg] \
+        https://deb.librewolf.net $(lsb_release -sc) main" \
+        > /etc/apt/sources.list.d/librewolf.list
+    apt-get update -q && apt-get install -y librewolf
+}
+
+install_vscode() {
+    info "Installing Visual Studio Code..."
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor \
+        -o /usr/share/keyrings/microsoft.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] \
+        https://packages.microsoft.com/repos/code stable main" \
+        > /etc/apt/sources.list.d/vscode.list
+    apt-get update -q && apt-get install -y code
+}
+
+install_spotify() {
+    info "Installing Spotify..."
+    curl -fsSL https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor \
+        -o /usr/share/keyrings/spotify.gpg
+    echo "deb [signed-by=/usr/share/keyrings/spotify.gpg] \
+        http://repository.spotify.com stable non-free" \
+        > /etc/apt/sources.list.d/spotify.list
+    apt-get update -q && apt-get install -y spotify-client
+}
+
+install_steam() {
+    info "Installing Steam..."
+    dpkg --add-architecture i386
+    apt-get update -q
+    apt-get install -y steam-installer
+}
+
+install_docker() {
+    info "Installing Docker..."
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor \
+        -o /usr/share/keyrings/docker.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] \
+        https://download.docker.com/linux/debian $(lsb_release -sc) stable" \
+        > /etc/apt/sources.list.d/docker.list
+    apt-get update -q && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    usermod -aG docker "$SUDO_USER"
+    success "Docker installed. Log out and back in to use Docker without sudo."
+}
+
+install_gaming_pack() {
+    info "Installing Gaming Pack (Lutris, Wine, MangoHud, GameMode)..."
+    dpkg --add-architecture i386
+    apt-get update -q
+    apt-get install -y lutris wine wine32 wine64 mangohud gamemode
+}
+
+install_editor_pack() {
+    info "Installing Editor Pack (GIMP, Krita, Inkscape)..."
+    apt-get install -y gimp krita inkscape
+}
+
+install_producer_pack() {
+    info "Installing Producer Pack (Ardour, Audacity, LMMS)..."
+    apt-get install -y ardour audacity lmms
+}
+
+install_ollama() {
+    info "Installing Ollama (local AI)..."
+    curl -fsSL https://ollama.ai/install.sh | sh
+}
+
+# ─── Package registry ────────────────────────────────────────────────────────
+
+# Packages available directly from apt
+APT_PACKAGES=(
+    firefox-esr vlc rhythmbox htop neofetch git curl wget
+    libreoffice gparted timeshift synaptic neovim flatpak
+    gnome-tweaks dconf-editor unzip p7zip-full tree bat fd-find
+    nmap wireshark-qt bleachbit stacer
+)
+
+# Third-party packages with custom install functions
+declare -A CUSTOM_PACKAGES=(
+    [brave]=install_brave
+    [chrome]=install_chrome
+    [librewolf]=install_librewolf
+    [vscode]=install_vscode
+    [spotify]=install_spotify
+    [steam]=install_steam
+    [docker]=install_docker
+    [gaming-pack]=install_gaming_pack
+    [editor-pack]=install_editor_pack
+    [producer-pack]=install_producer_pack
+    [ollama]=install_ollama
+)
+
+# ─── Commands ────────────────────────────────────────────────────────────────
+
+cmd_install() {
+    [[ -z "$1" ]] && error "Usage: core install <package>"
+    require_root
+    local pkg="$1"
+
+    if [[ -n "${CUSTOM_PACKAGES[$pkg]}" ]]; then
+        ${CUSTOM_PACKAGES[$pkg]}
+        success "$pkg installed successfully."
+    else
+        info "Installing $pkg via apt..."
+        apt-get install -y "$pkg" && success "$pkg installed successfully." \
+            || error "Package '$pkg' not found. Try 'core list' to see available packages."
+    fi
+}
+
+cmd_remove() {
+    [[ -z "$1" ]] && error "Usage: core remove <package>"
+    require_root
+    info "Removing $1..."
+    apt-get remove --purge -y "$1" && apt-get autoremove -y
+    success "$1 removed."
+}
+
+cmd_update() {
+    require_root
+    info "Updating Corex Linux..."
+    apt-get update && apt-get upgrade -y && apt-get autoremove -y
+    success "System is up to date."
+}
+
+cmd_list() {
+    echo ""
+    echo -e "${BOLD}${CYAN}  core — Available Packages${RESET}"
+    echo "  ─────────────────────────────────────────"
+    echo -e "${BOLD}  APT packages (standard):${RESET}"
+    for p in "${APT_PACKAGES[@]}"; do
+        echo "    • $p"
+    done
+    echo ""
+    echo -e "${BOLD}  Third-party packages (core managed):${RESET}"
+    for p in "${!CUSTOM_PACKAGES[@]}"; do
+        echo "    • $p"
+    done | sort
+    echo ""
+    echo -e "  All apt packages are also available: ${YELLOW}core install <apt-package-name>${RESET}"
+    echo ""
+}
+
+cmd_search() {
+    [[ -z "$1" ]] && error "Usage: core search <term>"
+    info "Searching for '$1'..."
+    apt-cache search "$1"
+}
+
+cmd_info() {
+    [[ -z "$1" ]] && error "Usage: core info <package>"
+    apt-cache show "$1" 2>/dev/null || error "Package '$1' not found."
+}
+
+# System tools (core system)
+cmd_system() {
+    case "$1" in
+        clean)
+            require_root
+            info "Cleaning system..."
+            apt-get autoremove -y && apt-get clean
+            sync && echo 3 > /proc/sys/vm/drop_caches
+            success "System cleaned."
+            ;;
+        dns)
+            require_root
+            echo "Set DNS server:"
+            echo "  1) Google (8.8.8.8)"
+            echo "  2) Cloudflare (1.1.1.1)"
+            echo "  3) Quad9 (9.9.9.9)"
+            read -rp "Choice [1-3]: " choice
+            case $choice in
+                1) dns="8.8.8.8"; dns2="8.8.4.4" ;;
+                2) dns="1.1.1.1"; dns2="1.0.0.1" ;;
+                3) dns="9.9.9.9"; dns2="149.112.112.112" ;;
+                *) error "Invalid choice" ;;
+            esac
+            echo -e "nameserver $dns\nnameserver $dns2" > /etc/resolv.conf
+            success "DNS updated to $dns / $dns2"
+            ;;
+        info)
+            echo ""
+            echo -e "  ${BOLD}Corex Linux — System Information${RESET}"
+            echo "  ──────────────────────────────────"
+            echo "  OS      : $(grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '\"')"
+            echo "  Kernel  : $(uname -r)"
+            echo "  Arch    : $(uname -m)"
+            echo "  CPU     : $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')"
+            echo "  Memory  : $(free -h | awk '/^Mem:/{print $3" used / "$2" total"}')"
+            echo "  Disk    : $(df -h / | awk 'NR==2{print $3" used / "$2" total ("$5")"}')"
+            echo "  Packages: $(dpkg -l 2>/dev/null | grep -c '^ii') (dpkg)"
+            echo "  Uptime  : $(uptime -p | sed 's/up //')"
+            echo "  IP      : $(hostname -I | awk '{print $1}')"
+            echo ""
+            ;;
+        *)
+            echo "Usage: core system [clean|dns|info]"
+            ;;
+    esac
+}
+
+cmd_tools() {
+    case "$1" in
+        formatusb)
+            require_root
+            lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -v loop
+            read -rp "Enter device (e.g. sdb): " dev
+            read -rp "Format as [fat32/ntfs/ext4]: " fs
+            case $fs in
+                fat32) mkfs.vfat -F32 "/dev/$dev" ;;
+                ntfs)  mkfs.ntfs "/dev/$dev" ;;
+                ext4)  mkfs.ext4 "/dev/$dev" ;;
+                *) error "Unknown filesystem" ;;
+            esac
+            success "/dev/$dev formatted as $fs"
+            ;;
+        debinstaller)
+            [[ -z "$2" ]] && error "Usage: core tools debinstaller <file.deb>"
+            require_root
+            apt-get install -y "$2"
+            ;;
+        *)
+            echo "Usage: core tools [formatusb|debinstaller]"
+            ;;
+    esac
+}
+
+cmd_help() {
+    echo ""
+    echo -e "${CYAN}${BOLD}  core — Corex Linux Package Manager v${VERSION}${RESET}"
+    echo "  ─────────────────────────────────────────────────"
+    echo -e "  ${BOLD}USAGE:${RESET}  core <command> [args]"
+    echo ""
+    echo -e "  ${BOLD}PACKAGE COMMANDS:${RESET}"
+    echo "    install <package>   Install a package"
+    echo "    remove  <package>   Remove a package"
+    echo "    update              Update system and all packages"
+    echo "    list                List available packages"
+    echo "    search  <term>      Search apt for packages"
+    echo "    info    <package>   Show package details"
+    echo ""
+    echo -e "  ${BOLD}SYSTEM COMMANDS:${RESET}"
+    echo "    system clean        Clean package cache and unused deps"
+    echo "    system dns          Change DNS provider"
+    echo "    system info         Show full system information"
+    echo ""
+    echo -e "  ${BOLD}TOOLS:${RESET}"
+    echo "    tools formatusb     Format a USB drive"
+    echo "    tools debinstaller  Install a .deb file"
+    echo ""
+    echo -e "  ${BOLD}EXAMPLES:${RESET}"
+    echo "    sudo core install brave"
+    echo "    sudo core install gaming-pack"
+    echo "    sudo core update"
+    echo "    core system info"
+    echo ""
+}
+
+# ─── Entry point ─────────────────────────────────────────────────────────────
+
+case "$1" in
+    install)      cmd_install "$2" ;;
+    remove)       cmd_remove "$2" ;;
+    update)       cmd_update ;;
+    list)         cmd_list ;;
+    search)       cmd_search "$2" ;;
+    info)         cmd_info "$2" ;;
+    system)       cmd_system "$2" ;;
+    tools)        cmd_tools "$2" "$3" ;;
+    help|--help)  cmd_help ;;
+    version)      echo "core version $VERSION — Corex Linux" ;;
+    "")           cmd_help ;;
+    *)            error "Unknown command '$1'. Run 'core help' for usage." ;;
+esac
