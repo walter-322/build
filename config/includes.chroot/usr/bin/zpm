@@ -1,5 +1,0 @@
-#!/bin/bash
-# Developed by root0emir
-# Zenclora Package Manager (zpm) - Wrapper for zen command
-
-/usr/bin/zen "$@"

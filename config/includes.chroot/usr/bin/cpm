@@ -1,0 +1,6 @@
+#!/bin/bash
+# Developed by root0emir
+# Forked by Walter
+# Core Package Manager (core) - Wrapper for core command
+
+/usr/bin/core "$@"
